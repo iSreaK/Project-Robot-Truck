@@ -1,0 +1,20 @@
+{
+  "name": "mbot-ranger-control",
+  "version": "1.0.0",
+  "description": "Application Electron locale pour piloter un Makeblock mBot Ranger (Me Auriga) au clavier (ZQSD) ou à la manette, via USB ou Bluetooth (port série).",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "rebuild": "electron-rebuild -f -w serialport",
+    "postinstall": "electron-rebuild -f -w serialport || echo \"electron-rebuild a échoué, lance 'npm run rebuild' manuellement si serialport ne charge pas\""
+  },
+  "author": "jeand",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "@electron/rebuild": "^3.7.0"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0"
+  }
+}

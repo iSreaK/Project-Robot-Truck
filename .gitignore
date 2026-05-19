@@ -1,0 +1,20 @@
+# Dependances : se reconstruisent avec `npm install`
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+
+# Etat outils
+.claude/
+*.lock
+
+# Build / packaging
+dist/
+out/
+*.exe
+*.log
+
+# Systeme
+.DS_Store
+Thumbs.db

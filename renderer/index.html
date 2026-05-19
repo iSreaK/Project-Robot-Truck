@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>mBot Ranger Control</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>mBot Ranger <span class="subtitle">Me Auriga · USB / Bluetooth</span></h1>
+    <div class="status" id="connStatus">
+      <span class="dot" id="connDot"></span>
+      <span id="connText">Déconnecté</span>
+    </div>
+  </header>
+
+  <main class="grid">
+
+    <!-- Connexion --------------------------------------------------------->
+    <section class="card span-2">
+      <h2>Connexion</h2>
+      <div class="row">
+        <label>Port&nbsp;:</label>
+        <select id="portSelect"></select>
+        <button id="btnRefresh" title="Rafraîchir la liste">↻</button>
+        <label>Baud&nbsp;:</label>
+        <select id="baudSelect">
+          <option value="115200">115200 (USB)</option>
+          <option value="9600">9600</option>
+          <option value="57600">57600</option>
+          <option value="38400">38400 (Bluetooth)</option>
+        </select>
+        <button id="btnConnect" class="primary">Connecter</button>
+        <button id="btnDisconnect" disabled>Déconnecter</button>
+      </div>
+      <p class="hint" id="portHint">Astuce : USB = CH340 (généralement 115200). Module Bluetooth Makeblock = souvent 115200 aussi, mais parfois 9600/38400 selon le firmware.</p>
+    </section>
+
+    <!-- Pilotage --------------------------------------------------------->
+    <section class="card span-2">
+      <h2>Pilotage</h2>
+
+      <div class="drive-pad">
+        <div class="key" data-key="z">Z</div>
+        <div class="key-row">
+          <div class="key" data-key="q">Q</div>
+          <div class="key big" data-key="space">␣ STOP</div>
+          <div class="key" data-key="d">D</div>
+        </div>
+        <div class="key" data-key="s">S</div>
+      </div>
+
+      <div class="row">
+        <label>Vitesse max&nbsp;: <output id="speedValue">80</output> / 255</label>
+        <input type="range" id="speedRange" min="0" max="255" value="80" />
+      </div>
+
+      <div class="row small">
+        <label><input type="checkbox" id="invertFwd" /> Inverser Avant/Arrière</label>
+        <label><input type="checkbox" id="invertM1" /> Inverser M1</label>
+        <label><input type="checkbox" id="invertM2" checked /> Inverser M2</label>
+        <label><input type="checkbox" id="swapMotors" /> Permuter M1↔M2</label>
+        <label>Mode&nbsp;:
+          <select id="motorMode">
+            <option value="encSpeed" selected>Encodeur Speed (mBlock, marche partout)</option>
+            <option value="encPwm">Encodeur PWM (firmware récent)</option>
+            <option value="dc">DC direct</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="row small diag">
+        <span class="diag-label">Diagnostic indépendant&nbsp;:</span>
+        <button data-diag="m1fwd">M1 +120 (1s)</button>
+        <button data-diag="m1rev">M1 −120 (1s)</button>
+        <button data-diag="m2fwd">M2 +120 (1s)</button>
+        <button data-diag="m2rev">M2 −120 (1s)</button>
+        <button data-diag="stop" class="primary">STOP tout</button>
+        <button data-diag="reset">RESET Auriga</button>
+      </div>
+
+      <div class="row small motor-readout">
+        <span>M1&nbsp;: <output id="m1Out">0</output></span>
+        <span>M2&nbsp;: <output id="m2Out">0</output></span>
+        <span>↑/↓ throttle&nbsp;: <output id="throttleOut">0.00</output></span>
+        <span>← /→ turn&nbsp;: <output id="turnOut">0.00</output></span>
+      </div>
+      <div class="row small motor-readout">
+        <span class="diag-label">Vitesse réelle (encodeurs)&nbsp;:</span>
+        <span>M1 <output id="speedM1">—</output> m/min</span>
+        <span>M2 <output id="speedM2">—</output> m/min</span>
+        <span>moyenne <output id="speedAvg">—</output> m/min</span>
+        <label style="margin-left:8px;">⌀ roue&nbsp;: <input type="number" id="wheelMm" value="50" min="10" max="200" style="width:60px;"/> mm</label>
+      </div>
+
+      <p class="hint">
+        <b>Clavier</b>&nbsp;: Z avancer, S reculer, Q tourner à gauche, D tourner à droite, ␣ stop d'urgence,
+        <kbd>+</kbd>/<kbd>-</kbd> ajuste la vitesse max.<br />
+        <b>Manette</b>&nbsp;: stick gauche = direction, gâchette droite = boost vitesse max, A = klaxon, B = stop.
+      </p>
+    </section>
+
+    <!-- Manette --------------------------------------------------------->
+    <section class="card">
+      <h2>Manette</h2>
+      <div id="gpStatus" class="muted">Aucune manette détectée. Clique dans la fenêtre, puis appuie sur un bouton.</div>
+      <div class="row small">
+        <button id="btnScanGamepad">Forcer le scan</button>
+        <span>Axe X&nbsp;: <output id="gpAxisX">0.00</output></span>
+        <span>Axe Y&nbsp;: <output id="gpAxisY">0.00</output></span>
+        <span>R2&nbsp;: <output id="gpTrigger">0.00</output></span>
+      </div>
+    </section>
+
+    <!-- Ultrason --------------------------------------------------------->
+    <section class="card">
+      <h2>Capteur ultrason</h2>
+      <div class="row small">
+        <label>Port&nbsp;:
+          <select id="usPort">
+            <option value="6">Port 6</option>
+            <option value="7">Port 7</option>
+            <option value="8">Port 8</option>
+            <option value="10" selected>Port 10</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="usEnable" checked /> Lire en continu</label>
+      </div>
+      <div class="dist-display">
+        <output id="usValue">— cm</output>
+        <div class="bar"><div id="usBar"></div></div>
+      </div>
+      <div class="row small">
+        <label><input type="checkbox" id="autoStop" /> Auto-stop sous</label>
+        <input type="number" id="autoStopCm" value="15" min="2" max="200" /> cm
+        <span class="muted" style="font-size: 11px;">(décélération progressive sur 15 cm)</span>
+      </div>
+      <div class="row small">
+        <label><input type="checkbox" id="backupRadar" /> <b>Radar de recul</b></label>
+        <span id="radarBand" class="muted">—</span>
+      </div>
+    </section>
+
+    <!-- LEDs ------------------------------------------------------------->
+    <section class="card">
+      <h2>Anneau LED (12 LEDs)</h2>
+      <div class="row small">
+        <label>LED&nbsp;:
+          <select id="ledIndex">
+            <option value="0">Toutes</option>
+            <option value="1">1</option><option value="2">2</option>
+            <option value="3">3</option><option value="4">4</option>
+            <option value="5">5</option><option value="6">6</option>
+            <option value="7">7</option><option value="8">8</option>
+            <option value="9">9</option><option value="10">10</option>
+            <option value="11">11</option><option value="12">12</option>
+          </select>
+        </label>
+        <input type="color" id="ledColor" value="#00aaff" />
+        <button id="btnLedApply">Appliquer</button>
+        <button id="btnLedOff">Éteindre tout</button>
+      </div>
+      <div class="row small">
+        <button data-preset="ff0000">Rouge</button>
+        <button data-preset="00ff00">Vert</button>
+        <button data-preset="0000ff">Bleu</button>
+        <button data-preset="ffaa00">Orange</button>
+        <button data-preset="ffffff">Blanc</button>
+        <button id="btnRainbow">Rainbow</button>
+      </div>
+    </section>
+
+    <!-- Gyroscope -------------------------------------------------------->
+    <section class="card span-2">
+      <h2>Gyroscope (MPU-6050)</h2>
+      <div class="gyro-row">
+        <div class="gyro-numeric">
+          <div class="gyro-line">Pitch (X)&nbsp;: <output id="gyroPitch">—</output>°</div>
+          <div class="gyro-line">Roll (Y)&nbsp;: <output id="gyroRoll">—</output>°</div>
+          <div class="gyro-line">Yaw (Z)&nbsp;: <output id="gyroYaw">—</output>°</div>
+          <button id="btnResetYaw">Définir Nord ici</button>
+        </div>
+        <svg viewBox="-100 -100 200 200" id="attitudeSvg" class="attitude" aria-label="Quad directionnel">
+          <circle r="94" stroke="#2a3142" fill="#0f1218" stroke-width="2"/>
+          <line x1="0" y1="-94" x2="0" y2="-82" stroke="#4cc2ff" stroke-width="2"/>
+          <line x1="0" y1="82" x2="0" y2="94" stroke="#3a4055" stroke-width="2"/>
+          <line x1="-94" y1="0" x2="-82" y2="0" stroke="#3a4055" stroke-width="2"/>
+          <line x1="82" y1="0" x2="94" y2="0" stroke="#3a4055" stroke-width="2"/>
+          <text x="0" y="-70" fill="#e6e9ef" font-size="11" text-anchor="middle" font-weight="600">N</text>
+          <text x="0" y="78" fill="#8b93a7" font-size="11" text-anchor="middle">S</text>
+          <text x="-72" y="4" fill="#8b93a7" font-size="11" text-anchor="end">O</text>
+          <text x="72" y="4" fill="#8b93a7" font-size="11" text-anchor="start">E</text>
+          <circle r="60" stroke="#1f2430" fill="none" stroke-width="1" stroke-dasharray="2 4"/>
+          <circle r="30" stroke="#1f2430" fill="none" stroke-width="1" stroke-dasharray="2 4"/>
+          <!-- Aiguille de compas : tourne avec le yaw -->
+          <g id="compassNeedle" transform="rotate(0)">
+            <polygon points="0,-72 8,8 0,0 -8,8" fill="#4cc2ff"/>
+            <polygon points="0,72 8,-8 0,0 -8,-8" fill="#5a6378"/>
+            <circle r="4" fill="#e6e9ef"/>
+          </g>
+          <!-- Point de bulle (pitch/roll) : se deplace dans le cercle -->
+          <circle id="tiltDot" r="7" cx="0" cy="0" fill="#ffa94c" stroke="#0f1218" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="row small">
+        <label><input type="checkbox" id="headingHold"/> <b>Heading Hold</b> (corrige la trajectoire pour aller droit)</label>
+        <label>Kp&nbsp;: <input type="range" id="headingKp" min="0" max="5" step="0.1" value="2.0" style="width:120px"/></label>
+        <output id="headingKpOut">2.0</output>
+        <label><input type="checkbox" id="headingFlip"/> Sens inversé</label>
+      </div>
+      <div class="row small">
+        <label><input type="checkbox" id="tiltLed"/> <b>Tilt LED</b> — la couleur de l'anneau suit l'inclinaison</label>
+      </div>
+      <div class="row small">
+        <button id="btnSpinChallenge"><b>Spin Challenge</b> — Démarrer</button>
+        <span>Cible&nbsp;: <output id="spinTarget">—</output>°</span>
+        <span>Écart&nbsp;: <output id="spinDiff">—</output>°</span>
+        <span>Score&nbsp;: <output id="spinScore">—</output></span>
+        <span id="spinHint" class="muted"></span>
+      </div>
+    </section>
+
+    <!-- Buzzer ----------------------------------------------------------->
+    <section class="card">
+      <h2>Buzzer</h2>
+      <div class="row small">
+        <label>Fréquence&nbsp;: <input type="number" id="toneFreq" value="440" min="50" max="5000" /> Hz</label>
+        <label>Durée&nbsp;: <input type="number" id="toneDur" value="200" min="20" max="2000" /> ms</label>
+        <button id="btnTone">Jouer</button>
+      </div>
+      <div class="row small">
+        <button data-note="262">Do</button>
+        <button data-note="294">Ré</button>
+        <button data-note="330">Mi</button>
+        <button data-note="349">Fa</button>
+        <button data-note="392">Sol</button>
+        <button data-note="440">La</button>
+        <button data-note="494">Si</button>
+        <button id="btnSiren">Sirène</button>
+      </div>
+    </section>
+
+    <!-- Jeux ------------------------------------------------------------->
+    <section class="card span-3">
+      <h2>Jeux & Mélodies</h2>
+      <div class="row">
+        <label>Jeu&nbsp;:
+          <select id="gameSelect">
+            <option value="jukebox">🎵 Jukebox</option>
+            <option value="simon">🎨 Simon dit (A/B/X/Y)</option>
+            <option value="reaction">⚡ Reaction time</option>
+            <option value="distance">📏 Devine la distance</option>
+            <option value="encoder">🛞 Roule au pifomètre</option>
+            <option value="drunk">🥴 Drunk driver (30s)</option>
+            <option value="limbo">🤸 Limbo (pitch)</option>
+            <option value="yawrush">🎯 Yaw Rush (30s)</option>
+            <option value="disco">💃 Disco</option>
+            <option value="police">🚨 Police</option>
+          </select>
+        </label>
+        <label>Mélodie&nbsp;:
+          <select id="melodySelect">
+            <option value="mario">Super Mario theme</option>
+            <option value="tetris">Tetris (theme A)</option>
+            <option value="imperial">Imperial March</option>
+            <option value="zelda">Zelda lullaby</option>
+            <option value="pacman">Pacman intro</option>
+            <option value="hedwig">Hedwig's theme</option>
+            <option value="megalovania">Megalovania</option>
+            <option value="sonic">Sonic theme</option>
+          </select>
+        </label>
+        <button id="btnGameStart" class="primary">▶ Démarrer</button>
+        <button id="btnGameStop">■ Arrêter</button>
+      </div>
+      <div id="gameStatus" class="game-status muted">Sélectionne un jeu et clique Démarrer. Bouton <b>A</b> manette = action principale dans tous les jeux.</div>
+      <p class="hint">
+        <b>Simon dit</b>&nbsp;: A=Rouge, B=Vert, X=Bleu, Y=Jaune.
+        <b>Reaction</b>&nbsp;: attends le flash vert, A le plus vite possible.
+        <b>Distance</b>&nbsp;: place le robot face à un mur à la distance demandée, A pour mesurer.
+        <b>Pifomètre</b>&nbsp;: A pour démarrer la course, A à nouveau quand tu penses être à la cible.
+        <b>Drunk driver</b>&nbsp;: conduis droit pendant que le jeu injecte des "hick" aléatoires.
+        <b>Limbo</b>&nbsp;: incline le robot à l'angle X cible et tiens 2 s.
+        <b>Yaw Rush</b>&nbsp;: pivote vite vers les cibles, 30 s.
+      </p>
+    </section>
+
+    <!-- Log -------------------------------------------------------------->
+    <section class="card span-3">
+      <h2>Journal</h2>
+      <pre id="log"></pre>
+    </section>
+
+  </main>
+
+  <script type="module" src="renderer.js"></script>
+</body>
+</html>
