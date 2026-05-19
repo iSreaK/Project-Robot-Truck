@@ -115,3 +115,5 @@ Pour les moteurs encodeurs de l'Auriga, on utilise `ENCODER_BOARD` (61), port 0,
 - En Bluetooth, la latence est plus élevée (~100-200 ms) qu'en USB ; baisse la vitesse max pour un pilotage plus fluide
 - Le firmware d'usine ne renvoie pas systématiquement la version → si tu ne vois pas de ligne "Firmware : …" dans le journal après connexion, ce n'est pas grave
 # Project-Robot-Truck
+
+Si tu veux, je peux te le retravailler pour le rendre encore plus pro, format 'prêt à push', ca sera encore mieux.
