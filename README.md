@@ -25,7 +25,6 @@ Application Electron locale pour piloter un **Makeblock mBot Ranger** (carte Me 
 ## Installation
 
 ```powershell
-cd C:\Users\jeand\Desktop\robot
 npm install
 npm start
 ```
